@@ -1,69 +1,29 @@
 # Emoji Paper Replication
 
-Complete replication package for emoji sentiment analysis paper. Reproduces all analyses, visualizations, and results from raw data files.
+Replication package for the emoji sentiment analysis paper.
+Runs core analyses focusing on data processing, model evaluation, and learning curves.
+
+## What This Includes
+
+This replication runs the analysis steps:
+
+1. **Data Processing** - Builds datasets from raw parquet/CSV files
+2. **Logistic Regression Models** - Comprehensive evaluation of baseline models
+3. **Transformer Models** - Deep learning model evaluation and comparison
+4. **Learning Curves** - Analysis of model performance vs training data size
+5. **Tokenizer Audit** - Analysis of tokenization behavior and efficiency
 
 ## Quick Start
 
-### Prerequisites
-- Python 3.8+
-
-### Setup
-```bash
-# 1. Install dependencies
-pip install -r requirements.txt
-
-# 2. Place your data files
-# Put output.parquet and emojitweets.csv in the data/ directory
-
-# 3. Run replication
-python launch_replication.py
-```
-
-## Usage
-
-### Run Full Replication
-```bash
-python launch_replication.py
-```
-- **Auto-detects data files**
-- **Interactive setup**
-- **Runs all 9 analysis steps** (1-4 hours)
-
-## Expected Runtime
-
-| Analysis | Time |
-|----------|------|
-| Data Processing | 5-15 min |
-| Logistic Regression | 10-30 min |
-| Transformer Models | 30-90 min |
-| Sequence Length | 20-60 min |
-| Wordclouds | 2-5 min |
-| Learning Curves | 15-45 min |
-| **Total** | **1.5-4 hours** |
-
-## Outputs
-
-- **Datasets**: `text_only.csv`, `emoji_only.csv`, `text_emoji.csv`
-- **Analysis Results**: Performance metrics, statistical summaries
-- **Visualizations**: Emoji wordclouds, learning curves, efficiency charts
-- **Reports**: Comprehensive execution logs
-
-## Troubleshooting
-
-### Memory Issues
-```bash
-export CUDA_VISIBLE_DEVICES=""
-python launch_replication.py
-```
-
-### Missing Dependencies
 ```bash
 pip install -r requirements.txt
+python launch_replication.py
 ```
 
-### Large Datasets
-The full replication handles large datasets automatically with optimized processing.
+Make sure output.parquet and emojitweets.csv are in the data/ folder before running.
+
+**Estimated runtime:** 30-60 minutes
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License. See LICENSE file.

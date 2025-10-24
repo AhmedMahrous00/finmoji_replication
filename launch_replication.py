@@ -7,82 +7,12 @@ import subprocess
 import time
 import datetime
 
-def install_emoji_font():
-    """Install emoji font for wordcloud generation on Linux systems"""
-    print("Checking emoji font availability...")
-    
-    try:
-        # Check if emoji fonts are already available
-        font_paths = [
-            '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',
-            '/System/Library/Fonts/Apple Color Emoji.ttc',
-            'NotoColorEmoji.ttf',
-            'NotoEmoji-VariableFont_wght.ttf'
-        ]
-        
-        available_fonts = []
-        for font_path in font_paths:
-            if Path(font_path).exists():
-                available_fonts.append(font_path)
-                print(f"Found: {font_path}")
-        
-        if available_fonts:
-            print(f"{len(available_fonts)} emoji font(s) available")
-            return True
-        
-        # Try to install Noto Color Emoji font
-        if sys.platform.startswith('linux'):
-            print("No emoji fonts found. Installing Noto Color Emoji font...")
-            
-            # Try different package managers
-            package_managers = [
-                ['sudo', 'apt-get', 'update', '&&', 'sudo', 'apt-get', 'install', '-y', 'fonts-noto-color-emoji'],
-                ['sudo', 'yum', 'install', '-y', 'google-noto-emoji-fonts'],
-                ['sudo', 'dnf', 'install', '-y', 'google-noto-emoji-fonts'],
-                ['sudo', 'pacman', '-S', 'noto-fonts-emoji']
-            ]
-            
-            for cmd in package_managers:
-                try:
-                    print(f"Trying: {' '.join(cmd)}")
-                    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-                    if result.returncode == 0:
-                        print("Emoji font installed successfully!")
-                        return True
-                    else:
-                        print(f"Failed: {result.stderr}")
-                except Exception as e:
-                    print(f"Error: {e}")
-                    continue
-            
-            print("Could not install emoji font automatically.")
-            print("Please install manually:")
-            print("  Ubuntu/Debian: sudo apt-get install fonts-noto-color-emoji")
-            print("  CentOS/RHEL: sudo yum install google-noto-emoji-fonts")
-            print("  Fedora: sudo dnf install google-noto-emoji-fonts")
-            print("  Arch: sudo pacman -S noto-fonts-emoji")
-            return False
-            
-        elif sys.platform == 'darwin':
-            print("Detected macOS - emoji fonts should be available by default")
-            return True
-        elif sys.platform.startswith('win'):
-            print("Detected Windows - emoji fonts should be available by default")
-            return True
-        else:
-            print(f"Unknown platform: {sys.platform}")
-            return False
-            
-    except Exception as e:
-        print(f"Error checking emoji fonts: {e}")
-        return False
-
 def setup_logging():
     """Set up automatic logging to results file"""
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file = f"replication_results_{timestamp}.txt"
     
-    # Create a custom print function that writes to both console and file
+    # Tee output to both console and file
     class TeeOutput:
         def __init__(self, *files):
             self.files = files
@@ -165,8 +95,8 @@ def interactive_setup():
 def choose_execution_mode():
     print("\nExecution Mode")
     print("=" * 40)
-    print("Running Full Analysis (1-4 hours, all analyses)")
-    print("This will run all analysis steps in sequence.")
+    print("Running Analysis")
+    print("This will run analysis steps in sequence.")
     
     return "1"  # Always return full analysis mode
 
@@ -202,16 +132,14 @@ def run_script(script_name, args=None):
         os.chdir(original_dir)
 
 def run_script_simple(script_name, input_file=None, output_dir=None):
-    """Run a script with simplified arguments"""
     script_path = Path("scripts") / script_name
     if not script_path.exists():
         print(f"Script not found: {script_path}")
         return False
     
-    # Create a simple command that works for most scripts
     cmd = [sys.executable, str(script_path)]
     
-    # Add common arguments if provided
+    # Add arguments if provided
     if input_file:
         cmd.extend(["--input", str(input_file)])
     if output_dir:
@@ -231,8 +159,8 @@ def run_script_simple(script_name, input_file=None, output_dir=None):
         return False
 
 def run_full_replication(parquet_file, csv_file):
-    print("\nRunning Full Replication...")
-    print("Estimated time: 1-4 hours")
+    print("\nRunning Replication...")
+    print("Estimated time: 30-60 minutes")
     
     output_dir = Path("replication_results")
     output_dir.mkdir(exist_ok=True)
@@ -263,23 +191,7 @@ def run_full_replication(parquet_file, csv_file):
         print("Data processing failed. Cannot continue with remaining steps.")
         return False
     
-    print("\nStep 2: Percentile Analysis")
-    success = run_script("text_emoji_length_percentiles.py", [
-        "--input", str(output_abs / "dataset" / "text_emoji.csv"),
-        "--output-dir", str(output_abs / "results")
-    ])
-    if not success:
-        failed_steps.append("percentiles")
-    
-    print("\nStep 3: Emoji Sentiment Analysis")
-    success = run_script("emoji_count_sentiment_distribution.py", [
-        "--dataset", str(output_abs / "dataset" / "text_emoji.csv"),
-        "--output-dir", str(output_abs / "results")
-    ])
-    if not success:
-        failed_steps.append("emoji_sentiment")
-    
-    print("\nStep 4: Baseline Models (Logistic Regression)")
+    print("\nStep 2: Baseline Models (Logistic Regression)")
     success = run_script("lr_comprehensive_evaluation.py", [
         "--dataset-dir", str(output_abs / "dataset"),
         "--output-dir", str(output_abs / "results")
@@ -287,7 +199,7 @@ def run_full_replication(parquet_file, csv_file):
     if not success:
         failed_steps.append("baseline_models")
     
-    print("\nStep 5: Transformer Models")
+    print("\nStep 3: Transformer Models")
     success = run_script("transformer_comprehensive_evaluation.py", [
         "--dataset-dir", str(output_abs / "dataset"),
         "--output-dir", str(output_abs / "results")
@@ -295,25 +207,7 @@ def run_full_replication(parquet_file, csv_file):
     if not success:
         failed_steps.append("transformer_models")
     
-    print("\nStep 6: Sequence Length Analysis")
-    success = run_script("sequence_length_sensitivity.py", [
-        "--dataset-dir", str(output_abs / "dataset"),
-        "--output-dir", str(output_abs / "results")
-    ])
-    if not success:
-        failed_steps.append("sequence_length")
-    
-    print("\nStep 7: Emoji Wordclouds")
-    print("Checking emoji font availability for wordcloud generation...")
-    install_emoji_font()
-    success = run_script("emoji_wordcloud.py", [
-        "--input", str(output_abs / "dataset" / "text_emoji.csv"),
-        "--output-dir", str(output_abs / "results")
-    ])
-    if not success:
-        failed_steps.append("wordclouds")
-    
-    print("\nStep 8: Learning Curves")
+    print("\nStep 4: Learning Curves")
     success = run_script("compute_learning_curves.py", [
         "--dataset-dir", str(output_abs / "dataset"),
         "--output-dir", str(output_abs / "results")
@@ -321,20 +215,19 @@ def run_full_replication(parquet_file, csv_file):
     if not success:
         failed_steps.append("learning_curves")
     
-    print("\nStep 9: Computational Analysis")
-    success = run_script("computational_efficiency_analysis.py", [
-        "--dataset-dir", str(output_abs / "dataset"),
-        "--output-dir", str(output_abs / "results")
+    print("\nStep 5: Tokenizer Audit")
+    success = run_script("tokenizer_audit.py", [
+        "--outdir", str(output_abs / "results" / "tokenizer_audit")
     ])
     if not success:
-        failed_steps.append("computational")
+        failed_steps.append("tokenizer_audit")
     
     # Summary
     end_time = time.time()
     duration = end_time - start_time
     
     print("\n" + "=" * 50)
-    print("FULL REPLICATION COMPLETED!")
+    print("REPLICATION COMPLETED!")
     print("=" * 50)
     print(f"Total time: {duration:.1f} seconds ({duration/60:.1f} minutes)")
     print(f"Results saved to: {output_dir}")
@@ -357,11 +250,11 @@ def main():
     try:
         print("EMOJI PAPER REPLICATION LAUNCHER")
         print("=" * 50)
-        print("This launcher will help you run the complete emoji paper replication")
+        print("This launcher will help you run the emoji paper replication")
         print("starting from your raw data files (output.parquet and emojitweets.csv)")
         print("=" * 50)
         
-        # Get data files
+        # Setup data files
         parquet_file, csv_file = interactive_setup()
         if not parquet_file or not csv_file:
             print("Cannot proceed without data files")
@@ -384,7 +277,7 @@ def main():
             print("REPLICATION COMPLETED SUCCESSFULLY!")
             print("=" * 50)
             print("Check the output directory for results")
-            print("Review replication_report.md for details")
+            print("Review the results directory for detailed outputs")
         else:
             print("\nReplication failed. Check error messages above.")
             sys.exit(1)
